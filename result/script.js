@@ -3,7 +3,9 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
 
-const SIM_DIMENSION = 256;
+const MIN_SIM_DIMENSION = 256;
+const MAX_SIM_DIMENSION = 2048;
+const SIM_RESOLUTION_SCALE = 0.5;
 const GROUP_COUNT = 16;
 const PARTICLE_PERCENTAGE = 0.02;
 const BASE_ROTATION_ANGLE_DEG = 45;
@@ -23,20 +25,18 @@ let stepSize = 0.001;
 let mouseXNorm = 0.5;
 let mouseYNorm = 0.5;
 
-const numberOfParticles = Math.max(
-  GROUP_COUNT,
-  Math.floor(SIM_DIMENSION * SIM_DIMENSION * PARTICLE_PERCENTAGE)
-);
-
-const particles = new Float32Array(numberOfParticles * 3);
-let trail = new Float32Array(SIM_DIMENSION * SIM_DIMENSION);
-let nextTrail = new Float32Array(SIM_DIMENSION * SIM_DIMENSION);
+let simWidth = 0;
+let simHeight = 0;
+let numberOfParticles = 0;
+let particles = new Float32Array(0);
+let trail = new Float32Array(0);
+let nextTrail = new Float32Array(0);
 
 let imageData;
 let imagePixels;
 const simCanvas = document.createElement('canvas');
-simCanvas.width = SIM_DIMENSION;
-simCanvas.height = SIM_DIMENSION;
+simCanvas.width = simWidth;
+simCanvas.height = simHeight;
 const simCtx = simCanvas.getContext('2d', { alpha: false });
 
 function clamp(v, min, max) {
@@ -47,6 +47,10 @@ function saturate(v) {
   return clamp(v, 0, 1);
 }
 
+function clampInt(v, min, max) {
+  return Math.floor(clamp(v, min, max));
+}
+
 function wrap01(v) {
   if (v < 0) return v + 1;
   if (v > 1) return v - 1;
@@ -54,15 +58,15 @@ function wrap01(v) {
 }
 
 function trailSample(xNorm, yNorm) {
-  const x = Math.floor(clamp(xNorm * (SIM_DIMENSION - 1), 0, SIM_DIMENSION - 1));
-  const y = Math.floor(clamp(yNorm * (SIM_DIMENSION - 1), 0, SIM_DIMENSION - 1));
-  return trail[y * SIM_DIMENSION + x];
+  const x = clampInt(xNorm * (simWidth - 1), 0, simWidth - 1);
+  const y = clampInt(yNorm * (simHeight - 1), 0, simHeight - 1);
+  return trail[y * simWidth + x];
 }
 
 function setTrail(xNorm, yNorm, value) {
-  const x = Math.floor(clamp(xNorm * (SIM_DIMENSION - 1), 0, SIM_DIMENSION - 1));
-  const y = Math.floor(clamp(yNorm * (SIM_DIMENSION - 1), 0, SIM_DIMENSION - 1));
-  trail[y * SIM_DIMENSION + x] = value;
+  const x = clampInt(xNorm * (simWidth - 1), 0, simWidth - 1);
+  const y = clampInt(yNorm * (simHeight - 1), 0, simHeight - 1);
+  trail[y * simWidth + x] = value;
 }
 
 function initializeParticles() {
@@ -74,6 +78,24 @@ function initializeParticles() {
     particles[base + 1] = y;
     particles[base + 2] = Math.atan2(0.5 - y, 0.5 - x);
   }
+}
+
+function resetSimulation(width, height) {
+  simWidth = width;
+  simHeight = height;
+  simCanvas.width = simWidth;
+  simCanvas.height = simHeight;
+
+  numberOfParticles = Math.max(
+    GROUP_COUNT,
+    Math.floor(simWidth * simHeight * PARTICLE_PERCENTAGE)
+  );
+  particles = new Float32Array(numberOfParticles * 3);
+  trail = new Float32Array(simWidth * simHeight);
+  nextTrail = new Float32Array(simWidth * simHeight);
+  imageData = simCtx.createImageData(simWidth, simHeight);
+  imagePixels = imageData.data;
+  initializeParticles();
 }
 
 function updateControlsFromMouse() {
@@ -141,25 +163,26 @@ function updateParticles() {
 }
 
 function updateTrail() {
-  const dim = SIM_DIMENSION;
-  for (let y = 0; y < dim; y++) {
+  const width = simWidth;
+  const height = simHeight;
+  for (let y = 0; y < height; y++) {
     const yMinus = y > 0 ? y - 1 : y;
-    const yPlus = y < dim - 1 ? y + 1 : y;
+    const yPlus = y < height - 1 ? y + 1 : y;
 
-    for (let x = 0; x < dim; x++) {
+    for (let x = 0; x < width; x++) {
       const xMinus = x > 0 ? x - 1 : x;
-      const xPlus = x < dim - 1 ? x + 1 : x;
+      const xPlus = x < width - 1 ? x + 1 : x;
 
-      const idx = y * dim + x;
+      const idx = y * width + x;
       let value = trail[idx];
-      value += trail[yMinus * dim + xMinus];
-      value += trail[yMinus * dim + x];
-      value += trail[yMinus * dim + xPlus];
-      value += trail[y * dim + xMinus];
-      value += trail[y * dim + xPlus];
-      value += trail[yPlus * dim + xMinus];
-      value += trail[yPlus * dim + x];
-      value += trail[yPlus * dim + xPlus];
+      value += trail[yMinus * width + xMinus];
+      value += trail[yMinus * width + x];
+      value += trail[yMinus * width + xPlus];
+      value += trail[y * width + xMinus];
+      value += trail[y * width + xPlus];
+      value += trail[yPlus * width + xMinus];
+      value += trail[yPlus * width + x];
+      value += trail[yPlus * width + xPlus];
 
       value = (value / 9) * (1 - DECAY);
       nextTrail[idx] = value;
@@ -190,7 +213,7 @@ function drawTrail() {
 }
 
 function resizeCanvas() {
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = window.devicePixelRatio;
   const width = Math.max(1, Math.floor(canvas.clientWidth * dpr));
   const height = Math.max(1, Math.floor(canvas.clientHeight * dpr));
 
@@ -200,8 +223,11 @@ function resizeCanvas() {
     ctx.imageSmoothingEnabled = false;
   }
 
-  imageData = simCtx.createImageData(SIM_DIMENSION, SIM_DIMENSION);
-  imagePixels = imageData.data;
+  const targetSimWidth = clampInt(width * SIM_RESOLUTION_SCALE, MIN_SIM_DIMENSION, MAX_SIM_DIMENSION);
+  const targetSimHeight = clampInt(height * SIM_RESOLUTION_SCALE, MIN_SIM_DIMENSION, MAX_SIM_DIMENSION);
+  if (targetSimWidth !== simWidth || targetSimHeight !== simHeight) {
+    resetSimulation(targetSimWidth, targetSimHeight);
+  }
 }
 
 function onPointerMove(clientX, clientY) {
@@ -238,5 +264,4 @@ function frame() {
 }
 
 resizeCanvas();
-initializeParticles();
 frame();
