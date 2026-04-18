@@ -2,7 +2,6 @@
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
-const hud = document.getElementById('hud');
 
 const SIM_DIMENSION = 256;
 const GROUP_COUNT = 16;
@@ -15,7 +14,7 @@ const MIN_SENSOR_RANGE = 0.002;
 const MAX_SENSOR_RANGE = 0.06;
 const MIN_STEP_SIZE = 0.0002;
 const MAX_STEP_SIZE = 0.008;
-const STEP_CLICK_DELTA = 0.00025;
+const STEP_CLICK_DELTA = 0.001;
 
 let sensorAngleDeg = 45;
 let sensorOffsetDistance = 0.01;
@@ -35,6 +34,10 @@ let nextTrail = new Float32Array(SIM_DIMENSION * SIM_DIMENSION);
 
 let imageData;
 let imagePixels;
+const simCanvas = document.createElement('canvas');
+simCanvas.width = SIM_DIMENSION;
+simCanvas.height = SIM_DIMENSION;
+const simCtx = simCanvas.getContext('2d', { alpha: false });
 
 function clamp(v, min, max) {
   return v < min ? min : v > max ? max : v;
@@ -182,19 +185,8 @@ function drawTrail() {
     pixels[p + 3] = 255;
   }
 
-  ctx.putImageData(imageData, 0, 0);
-}
-
-function updateHud() {
-  hud.textContent =
-    `Sensor Angle  : ${sensorAngleDeg.toFixed(1)}°\n` +
-    `Sensor Range  : ${sensorOffsetDistance.toFixed(4)}\n` +
-    `Step Size     : ${stepSize.toFixed(4)}\n\n` +
-    `Controls\n` +
-    `- Move mouse up/down: Sensor Angle\n` +
-    `- Move mouse left/right: Sensor Range\n` +
-    `- Left click: decrease Step Size\n` +
-    `- Right click: increase Step Size`;
+  simCtx.putImageData(imageData, 0, 0);
+  ctx.drawImage(simCanvas, 0, 0, canvas.width, canvas.height);
 }
 
 function resizeCanvas() {
@@ -210,7 +202,6 @@ function resizeCanvas() {
 
   imageData = ctx.createImageData(SIM_DIMENSION, SIM_DIMENSION);
   imagePixels = imageData.data;
-  ctx.setTransform(canvas.width / SIM_DIMENSION, 0, 0, canvas.height / SIM_DIMENSION, 0, 0);
 }
 
 function onPointerMove(clientX, clientY) {
@@ -243,7 +234,6 @@ function frame() {
   updateParticles();
   updateTrail();
   drawTrail();
-  updateHud();
   requestAnimationFrame(frame);
 }
 
