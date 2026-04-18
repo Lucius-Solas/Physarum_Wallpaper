@@ -200,7 +200,7 @@ function resizeCanvas() {
     ctx.imageSmoothingEnabled = false;
   }
 
-  imageData = ctx.createImageData(SIM_DIMENSION, SIM_DIMENSION);
+  imageData = simCtx.createImageData(SIM_DIMENSION, SIM_DIMENSION);
   imagePixels = imageData.data;
 }
 
