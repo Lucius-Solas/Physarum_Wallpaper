@@ -35,8 +35,6 @@ let nextTrail = new Float32Array(0);
 let imageData;
 let imagePixels;
 const simCanvas = document.createElement('canvas');
-simCanvas.width = simWidth;
-simCanvas.height = simHeight;
 const simCtx = simCanvas.getContext('2d', { alpha: false });
 
 function clamp(v, min, max) {
@@ -223,8 +221,11 @@ function resizeCanvas() {
     ctx.imageSmoothingEnabled = false;
   }
 
-  const targetSimWidth = clampInt(width * SIM_RESOLUTION_SCALE, MIN_SIM_DIMENSION, MAX_SIM_DIMENSION);
-  const targetSimHeight = clampInt(height * SIM_RESOLUTION_SCALE, MIN_SIM_DIMENSION, MAX_SIM_DIMENSION);
+  const minScale = Math.max(MIN_SIM_DIMENSION / width, MIN_SIM_DIMENSION / height);
+  const maxScale = Math.min(MAX_SIM_DIMENSION / width, MAX_SIM_DIMENSION / height);
+  const simScale = clamp(SIM_RESOLUTION_SCALE, Math.min(minScale, maxScale), maxScale);
+  const targetSimWidth = clampInt(width * simScale, 1, MAX_SIM_DIMENSION);
+  const targetSimHeight = clampInt(height * simScale, 1, MAX_SIM_DIMENSION);
   if (targetSimWidth !== simWidth || targetSimHeight !== simHeight) {
     resetSimulation(targetSimWidth, targetSimHeight);
   }
