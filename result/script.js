@@ -211,7 +211,7 @@ function drawTrail() {
 }
 
 function resizeCanvas() {
-  const dpr = window.devicePixelRatio;
+  const dpr = window.devicePixelRatio || 1;
   const width = Math.max(1, Math.floor(canvas.clientWidth * dpr));
   const height = Math.max(1, Math.floor(canvas.clientHeight * dpr));
 
@@ -223,7 +223,10 @@ function resizeCanvas() {
 
   const minScale = Math.max(MIN_SIM_DIMENSION / width, MIN_SIM_DIMENSION / height);
   const maxScale = Math.min(MAX_SIM_DIMENSION / width, MAX_SIM_DIMENSION / height);
-  const simScale = clamp(SIM_RESOLUTION_SCALE, Math.min(minScale, maxScale), maxScale);
+  let simScale = SIM_RESOLUTION_SCALE;
+  if (simScale < minScale) simScale = minScale;
+  if (simScale > maxScale) simScale = maxScale;
+  if (minScale > maxScale) simScale = maxScale;
   const targetSimWidth = clampInt(width * simScale, 1, MAX_SIM_DIMENSION);
   const targetSimHeight = clampInt(height * simScale, 1, MAX_SIM_DIMENSION);
   if (targetSimWidth !== simWidth || targetSimHeight !== simHeight) {
