@@ -16,7 +16,7 @@ const MIN_SENSOR_RANGE = 0.002;
 const MAX_SENSOR_RANGE = 0.06;
 const MIN_STEP_SIZE = 0.0002;
 const MAX_STEP_SIZE = 0.008;
-const STEP_CLICK_DELTA = 0.001;
+const STEP_KEY_DELTA = 0.001;
 const MIN_MOVEMENT_THRESHOLD = 1e-8;
 
 let sensorAngleDeg = 45;
@@ -243,16 +243,14 @@ canvas.addEventListener('mousemove', (e) => {
   onPointerMove(e.clientX, e.clientY);
 });
 
-canvas.addEventListener('mousedown', (e) => {
-  if (e.button === 0) {
-    stepSize = clamp(stepSize - STEP_CLICK_DELTA, MIN_STEP_SIZE, MAX_STEP_SIZE);
-  } else if (e.button === 2) {
-    stepSize = clamp(stepSize + STEP_CLICK_DELTA, MIN_STEP_SIZE, MAX_STEP_SIZE);
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') {
+    stepSize = clamp(stepSize - STEP_KEY_DELTA, MIN_STEP_SIZE, MAX_STEP_SIZE);
+    e.preventDefault();
+  } else if (e.key === 'ArrowRight') {
+    stepSize = clamp(stepSize + STEP_KEY_DELTA, MIN_STEP_SIZE, MAX_STEP_SIZE);
+    e.preventDefault();
   }
-});
-
-canvas.addEventListener('contextmenu', (e) => {
-  e.preventDefault();
 });
 
 window.addEventListener('resize', resizeCanvas);
