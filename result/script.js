@@ -224,11 +224,14 @@ function resizeCanvas() {
   const minScale = Math.max(MIN_SIM_DIMENSION / width, MIN_SIM_DIMENSION / height);
   const maxScale = Math.min(MAX_SIM_DIMENSION / width, MAX_SIM_DIMENSION / height);
   let simScale = SIM_RESOLUTION_SCALE;
-  if (simScale < minScale) simScale = minScale;
-  if (simScale > maxScale) simScale = maxScale;
-  if (minScale > maxScale) simScale = maxScale;
-  const targetSimWidth = clampInt(width * simScale, 1, MAX_SIM_DIMENSION);
-  const targetSimHeight = clampInt(height * simScale, 1, MAX_SIM_DIMENSION);
+  if (minScale > maxScale) {
+    simScale = minScale;
+  } else {
+    if (simScale < minScale) simScale = minScale;
+    if (simScale > maxScale) simScale = maxScale;
+  }
+  const targetSimWidth = clampInt(width * simScale, MIN_SIM_DIMENSION, MAX_SIM_DIMENSION);
+  const targetSimHeight = clampInt(height * simScale, MIN_SIM_DIMENSION, MAX_SIM_DIMENSION);
   if (targetSimWidth !== simWidth || targetSimHeight !== simHeight) {
     resetSimulation(targetSimWidth, targetSimHeight);
   }
