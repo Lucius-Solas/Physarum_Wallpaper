@@ -17,6 +17,7 @@ const MAX_SENSOR_RANGE = 0.06;
 const MIN_STEP_SIZE = 0.0002;
 const MAX_STEP_SIZE = 0.008;
 const STEP_CLICK_DELTA = 0.001;
+const MIN_MOVEMENT_THRESHOLD = 1e-8;
 
 let sensorAngleDeg = 45;
 let sensorOffsetDistance = 0.01;
@@ -154,7 +155,7 @@ function updateParticles() {
     particles[base + 1] = ny;
     particles[base + 2] = angle;
 
-    if ((nx - x) * (nx - x) + (ny - y) * (ny - y) > 1e-8) {
+    if ((nx - x) * (nx - x) + (ny - y) * (ny - y) > MIN_MOVEMENT_THRESHOLD) {
       setTrail(nx, ny, 1);
     }
   }
@@ -223,13 +224,7 @@ function resizeCanvas() {
 
   const minScale = Math.max(MIN_SIM_DIMENSION / width, MIN_SIM_DIMENSION / height);
   const maxScale = Math.min(MAX_SIM_DIMENSION / width, MAX_SIM_DIMENSION / height);
-  let simScale = SIM_RESOLUTION_SCALE;
-  if (minScale > maxScale) {
-    simScale = minScale;
-  } else {
-    if (simScale < minScale) simScale = minScale;
-    if (simScale > maxScale) simScale = maxScale;
-  }
+  const simScale = Math.max(minScale, Math.min(maxScale, SIM_RESOLUTION_SCALE));
   const targetSimWidth = clampInt(width * simScale, MIN_SIM_DIMENSION, MAX_SIM_DIMENSION);
   const targetSimHeight = clampInt(height * simScale, MIN_SIM_DIMENSION, MAX_SIM_DIMENSION);
   if (targetSimWidth !== simWidth || targetSimHeight !== simHeight) {
